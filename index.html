@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<title>Crypto Wave AI</title>
+<style>
+body{margin:0;background:#0b1220;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:20px}
+h1{font-size:25px;margin-bottom:4px}
+small,p{color:#94a3b8}
+.card{background:#172338;border:1px solid #293b55;border-radius:16px;padding:18px;margin:14px 0}
+select,button{background:#2563eb;color:white;border:0;border-radius:9px;padding:12px;font-size:16px}
+select{background:#253750;width:100%}
+button{width:100%;margin-top:12px}
+.price{font-size:32px;font-weight:bold;margin:12px 0}
+.up{color:#4ade80}.down{color:#fb7185}
+canvas{width:100%;height:190px}
+a{color:#93c5fd}
+</style>
+</head>
+<body>
+<h1>🌊 Crypto Wave AI</h1>
+<small>Market Intelligence · Prototype v0.3</small>
+<div class="card">
+<label for="coin">분석할 코인</label>
+<select id="coin">
+<option value="bitcoin">Bitcoin (BTC)</option>
+<option value="ethereum">Ethereum (ETH)</option>
+<option value="near">NEAR</option>
+<option value="hyperliquid">HYPE</option>
+<option value="ripple">XRP</option>
+<option value="sui">SUI</option>
+<option value="aave">AAVE</option>
+<option value="canton-network">Canton (CC)</option>
+</select>
+<button onclick="load()">가격 및 차트 새로고침</button>
+</div>
+<div class="card">
+<small>현재 가격 · USD</small>
+<div class="price" id="price">조회 대기</div>
+<div id="change">7일 가격 추세</div>
+<canvas id="chart"></canvas>
+<small id="updated"></small>
+</div>
+<div class="card">
+<h3>AI 분석 엔진</h3>
+<p>엘리엇 파동: 개발 예정</p>
+<p>뉴스 감성 분석: 개발 예정</p>
+<p>온체인 및 자금 흐름: 개발 예정</p>
+<p>분석가 합의 모델: 개발 예정</p>
+<p>상승 확률: 검증된 모델 구축 후 제공</p>
+</div>
+<div class="card">
+<h3>최신 뉴스 검색</h3>
+<a id="news" href="#" target="_blank" rel="noopener">선택한 코인 뉴스 보기 ↗</a>
+</div>
+<small>정보 제공용 프로토타입 · 투자 조언 아님 · CoinGecko 공개 API</small>
+<script>
+const coin=document.getElementById('coin');
+coin.onchange=load;
+async function load(){
+const id=coin.value;
+const price=document.getElementById('price');
+const change=document.getElementById('change');
+price.textContent='불러오는 중...';
+change.textContent='';
+document.getElementById('news').href='https://www.google.com/search?q='+encodeURIComponent(coin.options[coin.selectedIndex].text+' crypto news')+'&tbm=nws';
+try{
+const r=await fetch('https://api.coingecko.com/api/v3/coins/'+encodeURIComponent(id)+'/market_chart?vs_currency=usd&days=7');
+if(!r.ok)throw Error('API 응답 '+r.status);
+const data=await r.json();
+const a=data.prices.map(x=>x[1]);
+if(!a.length)throw Error('가격 데이터 없음');
+const last=a[a.length-1],first=a[0],pct=(last/first-1)*100;
+price.textContent=last.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:last<1?6:2});
+change.textContent='7일 변동: '+(pct>=0?'+':'')+pct.toFixed(2)+'%';
+change.className=pct>=0?'up':'down';
+draw(a);
+document.getElementById('updated').textContent='데이터 시각: '+new Date(data.prices[data.prices.length-1][0]).toLocaleString();
+}catch(e){
+price.textContent='조회 실패';
+change.textContent=e.message+' · 잠시 후 다시 시도해줘';
+draw([]);
+}}
+function draw(a){
+const c=document.getElementById('chart');
+const d=window.devicePixelRatio||1;
+const w=c.clientWidth,h=190;
+c.width=w*d;c.height=h*d;
+const x=c.getContext('2d');x.scale(d,d);x.clearRect(0,0,w,h);
+if(a.length<2)return;
+let lo=Math.min(...a),hi=Math.max(...a);
+if(hi===lo)hi=lo+1;
+x.beginPath();x.strokeStyle=a.at(-1)>=a[0]?'#4ade80':'#fb7185';x.lineWidth=2;
+a.forEach((v,i)=>{let px=i/(a.length-1)*w,py=12+(hi-v)/(hi-lo)*(h-24);i?x.lineTo(px,py):x.moveTo(px,py)});
+x.stroke();
+}
+load();
+</script>
+</body>
+</html>
